@@ -97,13 +97,19 @@
     /**
      * Tell a seed to send a particular chunk to a peer.
      */
-    function send_chunk($socket, $name, $chunk_num){
+    function send_chunk($leechsocket, $name, $chunk_num){
         $firstseed = sprintf("SELECT TOP 1 peerid FROM seeds WHERE torrent_name = %s;", $name);
         $seedid = mysql_query($firstseed, $con);
         $seed = sprintf("SELECT ip FROM peers WHERE peerid = %d", $seedid);
         $seedip = mysql_query($seed, $con);
+        // I think we need to add a port to the database
+        $seedport = 2323;
         
+        $buf = makeGetFrame($name, $chunk_num);
         
+        $socket = socket_create(AF_INET, SOCK_DGRAM, SOL_UDP);
+        socket_sendto($socket, $buf, strlen($buf), 0, $seedip, $seedport);
+        socket_close($socket);
     }
     
     /**
