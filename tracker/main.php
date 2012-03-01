@@ -10,7 +10,7 @@
     $database = "network";
     
     $peers = array();
-    $socket = socket_create(AF_INET,SOCK_STREAM,SOL_UDP);
+    $socket = socket_create(AF_INET,SOCK_STREAM,SOL_TCP);
     socket_bind($socket,'127.0.0.1',$port);
     socket_listen($socket);
     socket_set_nonblock($socket);
@@ -74,7 +74,7 @@
      */
     function chunk_confirmed($socket, $chunk_num){
         socket_getpeername($socket, $ip);
-        $peerquery = sprintf("SELECT peerid FROM peers WHERE ip=%s;", $ip);
+        $peerquery = sprintf("SELECT peerid FROM peers WHERE ip=%s", $ip);
         $peerid = mysql_query($peerquery, $con);
         $query = sprintf("UPDATE leechers SET chunk_progress = '%d' WHERE peerid = '%d';", ($chunk_num+1), $peerid);
         if(!mysql_query($query, $con)){echo('Error: ' . mysql_error());}
@@ -98,15 +98,14 @@
      * Tell a seed to send a particular chunk to a peer.
      */
     function send_chunk($leechsocket, $name, $chunk_num){
-        socket_getpeername($peersocket, $ip, $port);
         $firstseed = sprintf("SELECT TOP 1 peerid FROM seeds WHERE torrent_name = %s;", $name);
         $seedid = mysql_query($firstseed, $con);
-        $seed = sprintf("SELECT ip FROM peers WHERE peerid = %d;", $seedid);
+        $seed = sprintf("SELECT ip FROM peers WHERE peerid = %d", $seedid);
         $seedip = mysql_query($seed, $con);
         // I think we need to add a port to the database
         $seedport = 2323;
         
-        $buf = makeGetFrame($ip, $port, $name, $chunk_num);
+        $buf = makeGetFrame($name, $chunk_num);
         
         $socket = socket_create(AF_INET, SOCK_DGRAM, SOL_UDP);
         socket_sendto($socket, $buf, strlen($buf), 0, $seedip, $seedport);
@@ -116,18 +115,15 @@
     /**
      * Send a error message back to a peer.
      */
-    function send_error($peersocket, $error_message){
-        socket_getpeername($peersocket, $ip, $port);
-        $socket = socket_create(AF_INET, SOCK_DGRAM, SOL_UDP);
-        socket_sendto($socket, $error_message, strlen($error_message), 0, $ip, $port);
-        socket_close($socket);
+    function send_error($socket, $error_message){
+        echo "haven't done this yet";
     }
     
     /**
      * Handle a connection made by a single peer.
      */
     function handle_peer($socket){
-        $peer = socket_getpeername($socket, $ip, $port);
+        $peer = socket_getpeername($socket, $ip);
         
         $con = mysql_connect($database, $username, $password);
         if (!$con){
@@ -136,7 +132,7 @@
         mysql_select_db($database, $con);
         
         if(peerNotOnRecord($ip)){
-            addPeer($ip, $port);
+            addPeer($ip);
         }
         
         $buf = 'This is my buffer.';
@@ -175,8 +171,8 @@
     /**
      * Check if this is the first time the peer has connected.
      */
-    function peerNotOnRecord($ip, $port){
-        $query = sprintf("SELECT * FROM peers WHERE ip = '%s' AND port = '%d';", $ip, $port);
+    function peerNotOnRecord($ip){
+        $query = sprintf("SELECT * FROM peers WHERE ip = '%s';", $ip);
         $check = mysql_query($query, $con);
         if(mysql_num_rows($check) > 0){
             return FALSE;
@@ -187,16 +183,8 @@
     /**
      * Add a record of the peer to the database.
      */
-    function addPeer($ip, $port){
+    function addPeer($ip){
         $query = sprintf("INSERT INTO peers (ip) VALUES (%s);", $ip);
-    }
-    
-    /**
-     * Make a frame to send to the seeder which contains information
-     * about the torrent, and the leecher who requested it.
-     */
-    function makeGetFrame($ip, $port, $name, $chunk_num){
-        
     }
     
      /**
