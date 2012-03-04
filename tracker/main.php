@@ -1,6 +1,4 @@
 <?php
-    error_reporting(E_ALL); 
-    
     $username = "";
     $password = "";
     $database = "network";
@@ -58,7 +56,7 @@
             $query = sprintf("INSERT INTO torrents (torrent_name, size_MB) VALUES ('%s', '%d');", $name, $size);
             if(!mysql_query($query, $con)){echo('Error: ' . mysql_error());}
         }
-        $query = sprintf("INSERT INTO seeds (peerid, torrent_name) VALUES ('%d', '%s');", $peer_id, $name);
+        $query = sprintf("INSERT INTO seeds (peerid, torrent_name) VALUES ('%s', '%s');", $peer_id, $name);
         if(!mysql_query($query, $con)){echo('Error: ' . mysql_error());}
     }
     
@@ -71,7 +69,7 @@
         $query = sprintf("SELECT torrent_name FROM torrents WHERE torrent_name=%s;", $name);
         $check = mysql_query($query, $con);
         if(mysql_num_rows($check) > 0){
-            $query = sprintf("INSERT INTO leecher (peerid, torrent_name, chunk_progress) VALUES (%d, %s, %d);", $peer_id, $name, 0);
+            $query = sprintf("INSERT INTO leecher (peerid, torrent_name, chunk_progress) VALUES ('%s', '%s', %d);", $peer_id, $name, 0);
             if(!mysql_query($query, $con)){echo('Error: ' . mysql_error());}
             return_list($name);
         }else{echo json_encode("File does not exist");} 
@@ -111,8 +109,6 @@
      */
     function return_list($name){
         $list = array();
-        //$query = sprintf("SELECT peerid, ip, port FROM peers WHERE 
-        //                  peerid = (SELECT peerid FROM seeds WHERE torrent_name = %s);", $name);
         $query = sprintf("SELECT p.peerid as peerid, p.port as port, s.torrent_name as torrent_name FROM peers as p INNER JOIN seeds as s ON s.peerid=p.peerid WHERE s.torrent_name='%s' LIMIT 50;", 
             mysql_escape_string($name)
         );
@@ -137,7 +133,7 @@
         if(mysql_num_rows($check) > 0){
             $row = mysql_fetch_assoc($check);
             if($row["port"] != $port || $row["ip"] != $ip){
-                $query = sprintf("UPDATE peers SET ip = '%s', port = '%d' WHERE id = '%s';", $row["ip"], $row["port"], $peer_id);
+                $query = sprintf("UPDATE peers SET ip = '%s', port = '%d' WHERE peerid = '%s';", $row["ip"], $row["port"], $peer_id);
                 if(!mysql_query($query, $con)){echo('Error: ' . mysql_error());}
             }
             return FALSE;
@@ -149,7 +145,9 @@
      * Add a record of the peer to the database.
      */
     function addPeer($peer_id, $ip, $port){
-        $query = sprintf("INSERT INTO peers (ip) VALUES (%s);", $ip);
+        $query = sprintf("INSERT INTO peers (peerid, ip, port) VALUES ('%s', '%s', %d);", $peer_id, $ip, $port);
+        if(!mysql_query($query, $con)){echo('Error: ' . mysql_error());}
     }
-   
+    
+    mysql_close($con);
 ?>
