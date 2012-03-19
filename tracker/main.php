@@ -1,9 +1,10 @@
 <?php
+    $server = "localhost";
     $username = "root";
     $password = "";
     $database = "network";
     
-    $con = mysql_connect($database, $username, $password);
+    $con = mysql_connect($server, $username, $password);
     if (!$con){
         die('Could not connect: ' . mysql_error());
     }
@@ -43,6 +44,8 @@
             download_complete($peer_id, $name);
             break;
     }
+    
+    mysql_close($con);
     
     /**
      * For when a peer wants to upload a file.
@@ -107,21 +110,22 @@
      */
     function return_list($name){
         $list = array();
-        $query = sprintf("SELECT p.peerid as peerid, p.port as port, s.torrent_name as torrent_name FROM peers as p INNER JOIN seeds as s ON s.peerid=p.peerid WHERE s.torrent_name='%s' LIMIT 50;", 
+        $query = sprintf("SELECT p.peerid as peerid, p.port as port, p.ip as ip, p.public_key as public_key FROM peers as p INNER JOIN seeds as s ON s.peerid=p.peerid WHERE s.torrent_name='%s' LIMIT 50;", 
             mysql_escape_string($name)
         );
         $result = mysql_query($query, $con);
         if(mysql_num_rows($result) > 0){
             while($row = mysql_fetch_assoc($result)){
+                $seed = new stdClass();
                 $seed->peer_id = $row["peerid"];
                 $seed->ip = $row["ip"];
                 $seed->port = $row["port"];
                 $seed->public_key = $row["public_key"];
-                $list .= $seed;
+                array_push($list, $seed);
             }
+            echo json_encode($list);
         }else{echo json_encode("There are no seeds.");}
-        echo json_encode($list);
-    }
+        }
     
     /**
      * Check if this is the first time the peer has connected.
@@ -147,6 +151,4 @@
         $query = sprintf("INSERT INTO peers (peerid, ip, port, public_key) VALUES ('%s', '%s', %d, '%s');", $peer_id, $ip, $port, $public_key);
         if(!mysql_query($query, $con)){echo('Error: ' . mysql_error());}
     }
-    
-    mysql_close($con);
 ?>
