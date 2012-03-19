@@ -1,5 +1,5 @@
 <?php
-    $username = "";
+    $username = "root";
     $password = "";
     $database = "network";
     
@@ -14,7 +14,8 @@
     $port = $_GET["port"];
     
     if(peerNotOnRecord($peer_id, $ip, $port)){
-        addPeer($peer_id, $ip, $port);
+        $public_key = $_GET["public_key"];
+        addPeer($peer_id, $ip, $port, $public_key);
     }
     
     $conn_type = $_GET["type"];
@@ -35,8 +36,7 @@
             break;
         case 3:
             $name = $_GET["name"];
-            $chunk_num = $_GET["left"];
-            chunk_confirmed($peer_id, $name, $chunk_num);
+            chunk_confirmed($peer_id, $name);
             break;
         case 4:
             $name = $_GET["name"];
@@ -69,7 +69,7 @@
         $query = sprintf("SELECT torrent_name FROM torrents WHERE torrent_name=%s;", $name);
         $check = mysql_query($query, $con);
         if(mysql_num_rows($check) > 0){
-            $query = sprintf("INSERT INTO leecher (peerid, torrent_name, chunk_progress) VALUES ('%s', '%s', %d);", $peer_id, $name, 0);
+            $query = sprintf("INSERT INTO leecher (peerid, torrent_name) VALUES ('%s', '%s');", $peer_id, $name);
             if(!mysql_query($query, $con)){echo('Error: ' . mysql_error());}
             return_list($name);
         }else{echo json_encode("File does not exist");} 
@@ -87,9 +87,7 @@
      * When a chunk has been successfully received by the leecher.
      * Update the leecher entry with a new chunk number and return a list seeds.
      */
-    function chunk_confirmed($peer_id, $name, $chunk_num){
-        $query = sprintf("UPDATE leechers SET chunk_progress = '%d' WHERE peerid = %s;", $chunk_num, $peer_id);
-        if(!mysql_query($query, $con)){echo('Error: ' . mysql_error());}
+    function chunk_confirmed($peer_id, $name){
         return_list($name);
     }
     
@@ -118,6 +116,7 @@
                 $seed->peer_id = $row["peerid"];
                 $seed->ip = $row["ip"];
                 $seed->port = $row["port"];
+                $seed->public_key = $row["public_key"];
                 $list .= $seed;
             }
         }else{echo json_encode("There are no seeds.");}
@@ -133,7 +132,7 @@
         if(mysql_num_rows($check) > 0){
             $row = mysql_fetch_assoc($check);
             if($row["port"] != $port || $row["ip"] != $ip){
-                $query = sprintf("UPDATE peers SET ip = '%s', port = '%d' WHERE peerid = '%s';", $row["ip"], $row["port"], $peer_id);
+                $query = sprintf("UPDATE peers SET ip = '%s', port = '%d' WHERE peerid = '%s';", $ip, $port, $peer_id);
                 if(!mysql_query($query, $con)){echo('Error: ' . mysql_error());}
             }
             return FALSE;
@@ -144,8 +143,8 @@
     /**
      * Add a record of the peer to the database.
      */
-    function addPeer($peer_id, $ip, $port){
-        $query = sprintf("INSERT INTO peers (peerid, ip, port) VALUES ('%s', '%s', %d);", $peer_id, $ip, $port);
+    function addPeer($peer_id, $ip, $port, $public_key){
+        $query = sprintf("INSERT INTO peers (peerid, ip, port, public_key) VALUES ('%s', '%s', %d, '%s');", $peer_id, $ip, $port, $public_key);
         if(!mysql_query($query, $con)){echo('Error: ' . mysql_error());}
     }
     
