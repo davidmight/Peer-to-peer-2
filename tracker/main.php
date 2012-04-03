@@ -11,11 +11,12 @@
     mysql_select_db($database, $con);
     
     $peer_id = $_GET["peer_id"];
-    $ip = $_GET["ip"];
+    //$ip = $_GET["ip"];
+    $ip = $_SERVER["REMOTE_ADDR"];
     $port = $_GET["port"];
+    $public_key = $_GET["public_key"];
     
-    if(peerNotOnRecord($peer_id, $ip, $port)){
-        $public_key = $_GET["public_key"];
+    if(peerNotOnRecord($peer_id, $ip, $port, $public_key)){
         addPeer($peer_id, $ip, $port, $public_key);
     }
     
@@ -130,13 +131,13 @@
     /**
      * Check if this is the first time the peer has connected.
      */
-    function peerNotOnRecord($peer_id, $ip, $port){
+    function peerNotOnRecord($peer_id, $ip, $port, $public_key){
         $query = sprintf("SELECT * FROM peers WHERE peerid = '%s';", $peer_id);
         $check = mysql_query($query, $con);
         if(mysql_num_rows($check) > 0){
             $row = mysql_fetch_assoc($check);
-            if($row["port"] != $port || $row["ip"] != $ip){
-                $query = sprintf("UPDATE peers SET ip = '%s', port = '%d' WHERE peerid = '%s';", $ip, $port, $peer_id);
+            if($row["port"] != $port || $row["ip"] != $ip || $row["public_key"] != $public_keys){
+                $query = sprintf("UPDATE peers SET ip = '%s', port = '%d', public_key = '%s' WHERE peerid = '%s';", $ip, $port, $public_key, $peer_id);
                 if(!mysql_query($query, $con)){echo('Error: ' . mysql_error());}
             }
             return FALSE;
