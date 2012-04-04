@@ -3,7 +3,7 @@
 -- http://www.phpmyadmin.net
 --
 -- Host: localhost
--- Generation Time: Apr 03, 2012 at 12:13 PM
+-- Generation Time: Apr 04, 2012 at 10:36 AM
 -- Server version: 5.5.16
 -- PHP Version: 5.3.8
 
@@ -19,22 +19,6 @@ SET time_zone = "+00:00";
 --
 -- Database: `network`
 --
-
--- --------------------------------------------------------
-
---
--- Table structure for table `leechers`
---
-
-CREATE TABLE IF NOT EXISTS `leechers` (
-  `leechid` int(11) NOT NULL AUTO_INCREMENT,
-  `peerid` int(11) NOT NULL,
-  `torrent_name` varchar(100) NOT NULL,
-  `date_started` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`leechid`),
-  KEY `peerid` (`peerid`),
-  KEY `torrent_name` (`torrent_name`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 
@@ -93,7 +77,6 @@ INSERT INTO `seeds` (`seedid`, `peerid`, `torrent_name`, `date_joined`) VALUES
 
 CREATE TABLE IF NOT EXISTS `torrents` (
   `torrent_name` varchar(100) NOT NULL,
-  `size_MB` int(11) NOT NULL,
   PRIMARY KEY (`torrent_name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
@@ -101,21 +84,14 @@ CREATE TABLE IF NOT EXISTS `torrents` (
 -- Dumping data for table `torrents`
 --
 
-INSERT INTO `torrents` (`torrent_name`, `size_MB`) VALUES
-('linux', 2000),
-('osx', 7000),
-('windows', 7000);
+INSERT INTO `torrents` (`torrent_name`) VALUES
+('linux'),
+('osx'),
+('windows');
 
 --
 -- Constraints for dumped tables
 --
-
---
--- Constraints for table `leechers`
---
-ALTER TABLE `leechers`
-  ADD CONSTRAINT `leechers_ibfk_1` FOREIGN KEY (`peerid`) REFERENCES `peers` (`peerid`),
-  ADD CONSTRAINT `leechers_ibfk_2` FOREIGN KEY (`torrent_name`) REFERENCES `torrents` (`torrent_name`);
 
 --
 -- Constraints for table `seeds`
